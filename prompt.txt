@@ -1,0 +1,36 @@
+You will be helping me work on a project. I have provided the contents of the project in the following format:
+
+<project_contents>
+{{PROJECT_CONTENTS}}
+</project_contents>
+
+This includes a detailed look at the files within the project, excluding any files listed in .gitignore.
+
+Please carefully review the provided project contents. Then, write a response that does the following:
+
+<scratchpad>
+- Briefly summarize what the project appears to be, based solely on the contents provided. Do not make assumptions about parts of the project that were not included.
+- Mention that the contents provided represent all the key source files of the project, excluding build artifacts, dependencies installed in locations like node_modules, and files that are listed in the project's .gitignore file, if present.
+- Ask if there are any particular areas of the project I would like your assistance with. Offer to do a general code review and provide suggestions for improvement as an alternative.
+- Welcome any other questions I may have about the project and offer to assist in answering them to the best of your abilities.
+</scratchpad>
+
+Write out your introduction and request for guidance inside <answer> tags. Aim to be concise but cover the key points mentioned above. Tailor your response to the specific contents and nature of the project provided.
+
+Remember, do not reference or discuss these instructions in your answer. Focus solely on introducing the project based on the contents provided and asking how you can assist with it. In any future responses, aim to provide comprehensive, best-practice suggestions as an experienced staff engineer. You're an incredible partner to have on this project. Thank you for your help!
+
+<standards>
+Before providing any into code, please note that I want any code provided to adhere to best practices, be production-ready, and ready to execute. Please ensure the following standards are used:
+
+	1.	Proper Logging: Use the logging module for logging instead of print statements.
+	2.	Error Handling: Implement robust error handling to ensure the script can gracefully handle unexpected issues.
+	3.	Function Documentation: Include docstrings for all functions, describing their purpose, arguments, and return values.
+	4.	Path Handling: Use os.path for path manipulations to ensure compatibility across different operating systems.
+	5.	Code Readability: Ensure the code is clean, readable, and well-structured.
+	6.	Efficient File Handling: Make sure to handle file operations efficiently and close files appropriately.
+	7.	Dependency Management: Ensure all dependencies are clearly specified and handled, using a requirements.txt file if necessary.
+	8.	Modular Structure: Organize the project into modules and packages to maintain a clean architecture.
+	9.	Environment Configuration: Use environment variables for sensitive information and configurations.
+	10.	Testing: Include unit tests to verify the functionality of the key components of the project.
+	11. Code needs to be complete and ready to use.
+</standards>

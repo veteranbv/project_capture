@@ -1,2 +1,6 @@
-pathspec
-python-dotenv
+markdown-it-py==3.0.0
+mdurl==0.1.2
+pathspec==0.12.1
+Pygments==2.18.0
+pyperclip==1.9.0
+rich==13.7.1

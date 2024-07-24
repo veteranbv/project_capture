@@ -1,45 +1,43 @@
 import logging
 from pathlib import Path
-from typing import List
-import pathspec
+import pyperclip
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-def load_gitignore_patterns(root_dir: Path) -> List[str]:
-    """Load .gitignore patterns from the specified directory."""
-    gitignore_path = root_dir / '.gitignore'
-    if gitignore_path.exists():
-        logging.info(f"Reading .gitignore from: {gitignore_path}")
-        return gitignore_path.read_text(encoding='utf-8').splitlines()
-    else:
-        logging.warning(f"No .gitignore found at: {gitignore_path}")
-        return []
+def copy_to_clipboard(text: str) -> bool:
+    """
+    Copy the given text to the system clipboard.
 
-def combine_gitignore_patterns(root_patterns: List[str], target_patterns: List[str]) -> pathspec.PathSpec:
-    """Combine patterns from root and target .gitignore files."""
-    combined_patterns = root_patterns + target_patterns
-    logging.debug(f"Combined .gitignore patterns: {combined_patterns}")
-    return pathspec.PathSpec.from_lines('gitwildmatch', combined_patterns)
+    Args:
+        text (str): The text to copy to the clipboard.
 
-def generate_tree(root_dir: Path, gitignore_spec: pathspec.PathSpec) -> str:
-    """Generate a tree-like directory structure, respecting .gitignore."""
-    tree_lines = []
-    for subdir, dirs, files in root_dir.walk():
-        logging.debug(f"Traversing directory: {subdir}")
-        # Skip unwanted directories
-        dirs[:] = [d for d in dirs if not gitignore_spec.match_file(subdir.joinpath(d).relative_to(root_dir))]
-        
-        # Add directory to the tree
-        level = len(subdir.relative_to(root_dir).parts)
-        indent = ' ' * 4 * level
-        subtree = subdir.name + '/'
-        tree_lines.append(f"{indent}{subtree}")
+    Returns:
+        bool: True if successful, False otherwise.
+    """
+    try:
+        pyperclip.copy(text)
+        return True
+    except pyperclip.PyperclipException as e:
+        logger.error(f"Error copying to clipboard: {str(e)}")
+        return False
 
-        # Add files to the tree
-        for file in files:
-            file_path = subdir.joinpath(file).relative_to(root_dir)
-            if not gitignore_spec.match_file(file_path):
-                sub_indent = ' ' * 4 * (level + 1)
-                tree_lines.append(f"{sub_indent}{file}")
+def sanitize_path(path: str) -> Path:
+    """
+    Sanitize and validate the given file path.
 
-    return "\n".join(tree_lines)
+    Args:
+        path (str): The file path to sanitize.
+
+    Returns:
+        Path: The sanitized path.
+
+    Raises:
+        ValueError: If the path is invalid or potentially dangerous.
+    """
+    try:
+        sanitized_path = Path(path).resolve()
+        if not sanitized_path.is_relative_to(Path.cwd()):
+            raise ValueError("Path is outside the current working directory")
+        return sanitized_path
+    except (ValueError, RuntimeError) as e:
+        raise ValueError(f"Invalid or potentially dangerous path: {str(e)}")

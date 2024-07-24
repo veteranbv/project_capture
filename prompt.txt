@@ -22,15 +22,25 @@ Remember, do not reference or discuss these instructions in your answer. Focus s
 <standards>
 Before providing any into code, please note that I want any code provided to adhere to best practices, be production-ready, and ready to execute. Please ensure the following standards are used:
 
-	1.	Proper Logging: Use the logging module for logging instead of print statements.
-	2.	Error Handling: Implement robust error handling to ensure the script can gracefully handle unexpected issues.
-	3.	Function Documentation: Include docstrings for all functions, describing their purpose, arguments, and return values.
-	4.	Path Handling: Use os.path for path manipulations to ensure compatibility across different operating systems.
-	5.	Code Readability: Ensure the code is clean, readable, and well-structured.
-	6.	Efficient File Handling: Make sure to handle file operations efficiently and close files appropriately.
-	7.	Dependency Management: Ensure all dependencies are clearly specified and handled, using a requirements.txt file if necessary.
-	8.	Modular Structure: Organize the project into modules and packages to maintain a clean architecture.
-	9.	Environment Configuration: Use environment variables for sensitive information and configurations.
-	10.	Testing: Include unit tests to verify the functionality of the key components of the project.
-	11. Code needs to be complete and ready to use.
+ 1. Utilize Proper Logging: Always use standard logging libraries instead of print statements for any debugging or informational output to ensure logs are comprehensive and configurable.
+ 2. Implement Robust Error Handling: Actively manage unexpected issues by implementing thorough error handling mechanisms, such as try-except blocks, and consider the use of custom exception classes where applicable.
+ 3. Document Functions Thoroughly: Provide clear docstrings for all functions that describe their purpose, parameters, and expected return values to enhance code readability and maintainability.
+ 4. Handle Paths Correctly: Use standardized path manipulation libraries like os.path or pathlib to ensure that file and directory paths are handled correctly across different operating systems.
+ 5. Maintain Code Readability: Write code that is clean, organized, and easy to read. Adhere to common naming conventions, keep functions focused on a single task, and make effective use of whitespace and comments.
+ 6. Manage File Operations Efficiently: Ensure efficient file handling by using context managers to automatically close files after their operation is complete, thereby avoiding resource leaks.
+ 7. Manage Dependencies Clearly: Explicitly manage all dependencies using a requirements.txt file or equivalent dependency management tools, ensuring all necessary libraries are easily installable.
+ 8. Organize Code Modularly: Organize code into logical modules and packages to maintain a clean and scalable architecture. This approach facilitates easier maintenance and future enhancements.
+ 9. Secure Environment Configurations: Use environment variables for managing sensitive or environment-specific settings, enhancing security and adaptability in different deployment contexts.
+ 10. Incorporate Comprehensive Testing: Include unit tests for all critical components to validate functionality consistently. Utilize appropriate testing frameworks to automate and streamline the testing process.
+ 11. Ensure Code Completeness: Deliver code that is complete, production-ready, and executable as provided. Verify that all functionalities are implemented and perform adequately under expected use cases.
+ 12. Preserve Existing Functionality: Ensure that all proposed code changes or optimizations maintain the current functionality of the application. If any modifications are expected to alter or reduce the existing features, such alterations must be clearly documented and discussed before implementation to assess their impact.
+ 13. Implement Code Security Practices: Apply secure coding practices to all development efforts. This includes validating and sanitizing user inputs, using secure methods for handling data, and adhering to best practices for preventing common vulnerabilities like SQL injection, cross-site scripting (XSS), and cross-site request forgery (CSRF).
+ 14. Adhere to Coding Conventions: Strictly follow industry-standard coding conventions specific to each programming language used. For instance, adhere to PEP 8 guidelines for Python, the Google Java style guide for Java, and other relevant style guides to ensure code consistency, readability, and maintainability.
+
+Optimize Code Performance:
+
+ 1. Analyze the provided codebase to identify potential optimizations that can improve efficiency, such as reducing computational complexity or minimizing resource usage.
+ 2. Provide specific, actionable suggestions for enhancements that maintain or improve the existing functionality.
+ 3. Explain the rationale behind each optimization to clarify how these changes contribute to better performance and resource management.
+
 </standards>

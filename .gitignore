@@ -348,3 +348,5 @@ error_log
 
 output/*
 .env
+
+.git/*

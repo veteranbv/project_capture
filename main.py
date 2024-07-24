@@ -10,19 +10,21 @@ from snapshot.capture import save_project_contents
 from snapshot.exceptions import ProjectSnapshotError
 from snapshot.utils import copy_to_clipboard
 
-CONFIG_FILE = 'config.json'
+CONFIG_FILE = "config.json"
 console = Console()
+
 
 def configure_logging():
     """Configure logging settings for the application."""
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.FileHandler("project_snapshot.log"),
-            logging.StreamHandler(sys.stdout)
-        ]
+            logging.StreamHandler(sys.stdout),
+        ],
     )
+
 
 def load_config():
     """
@@ -33,11 +35,12 @@ def load_config():
     """
     if Path(CONFIG_FILE).exists():
         try:
-            with open(CONFIG_FILE, 'r') as f:
+            with open(CONFIG_FILE, "r") as f:
                 return json.load(f)
         except json.JSONDecodeError:
             logging.error(f"Error decoding {CONFIG_FILE}. Using default configuration.")
     return {}
+
 
 def save_config(new_config):
     """
@@ -49,10 +52,11 @@ def save_config(new_config):
     existing_config = load_config()
     existing_config.update(new_config)
     try:
-        with open(CONFIG_FILE, 'w') as f:
+        with open(CONFIG_FILE, "w") as f:
             json.dump(existing_config, f, indent=4)
     except IOError:
         logging.error(f"Error writing to {CONFIG_FILE}.")
+
 
 def get_target_directory(config):
     """
@@ -64,7 +68,7 @@ def get_target_directory(config):
     Returns:
         Path: The selected target directory.
     """
-    current_directory = config.get('target_directory', str(Path.cwd()))
+    current_directory = config.get("target_directory", str(Path.cwd()))
     console.print(Panel(f"Current target directory: [cyan]{current_directory}[/cyan]"))
     if Confirm.ask("Would you like to update the target directory?"):
         while True:
@@ -74,6 +78,7 @@ def get_target_directory(config):
             else:
                 console.print("[red]Invalid directory. Please try again.[/red]")
     return Path(current_directory)
+
 
 def get_project_name(directory):
     """
@@ -89,6 +94,7 @@ def get_project_name(directory):
     if Confirm.ask(f"Use '[cyan]{default_name}[/cyan]' as the project name?"):
         return default_name
     return Prompt.ask("Enter custom project name")
+
 
 def get_output_filename(project_name):
     """
@@ -106,6 +112,7 @@ def get_output_filename(project_name):
         return default_filename
     return Prompt.ask("Enter custom filename (timestamp will be appended)")
 
+
 def main():
     """
     Main function to execute the project snapshot tool.
@@ -116,38 +123,50 @@ def main():
     try:
         configure_logging()
         config = load_config()
-        
+
         if not config:
-            console.print("[yellow]No existing configuration found. We'll create one as we go.[/yellow]")
-        
-        console.print(Panel.fit("Welcome to [bold green]Project Snapshot[/bold green] - AI-Ready Project Capture Tool", 
-                                border_style="bold blue"))
+            console.print(
+                "[yellow]No existing configuration found. We'll create one as we go.[/yellow]"
+            )
+
+        console.print(
+            Panel.fit(
+                "Welcome to [bold green]Project Snapshot[/bold green] - AI-Ready Project Capture Tool",
+                border_style="bold blue",
+            )
+        )
 
         root_directory = get_target_directory(config)
-        save_config({'target_directory': str(root_directory)})
-        
+        save_config({"target_directory": str(root_directory)})
+
         project_name = get_project_name(root_directory)
-        
-        output_dir = Path('output') / project_name
+
+        output_dir = Path("output") / project_name
         output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         output_filename = get_output_filename(project_name)
         output_path = output_dir / output_filename
 
         include_in_prompt = Confirm.ask("Include project content in AI prompt?")
 
         with console.status("[bold green]Capturing project contents...[/bold green]"):
-            save_project_contents(root_directory, output_path, project_name, include_in_prompt)
+            save_project_contents(
+                root_directory, output_path, project_name, include_in_prompt
+            )
 
-        console.print("[bold green]Done! Project snapshot saved and ready for AI analysis.[/bold green]")
+        console.print(
+            "[bold green]Done! Project snapshot saved and ready for AI analysis.[/bold green]"
+        )
 
         console.print(f"\nOutput saved to: [cyan]{output_path}[/cyan]")
-        
+
         if Confirm.ask("Would you like to copy the output path to clipboard?"):
             copy_to_clipboard(str(output_path))
             console.print("[green]Output path copied to clipboard.[/green]")
 
-        console.print("[bold green]Thank you for using Project Snapshot. Goodbye![/bold green]")
+        console.print(
+            "[bold green]Thank you for using Project Snapshot. Goodbye![/bold green]"
+        )
 
     except ProjectSnapshotError as e:
         console.print(f"[bold red]Project snapshot error: {str(e)}[/bold red]")
@@ -156,6 +175,7 @@ def main():
         console.print(f"[bold red]Unexpected error occurred: {str(e)}[/bold red]")
         logging.exception("An unexpected error occurred")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

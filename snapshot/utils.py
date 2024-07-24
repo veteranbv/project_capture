@@ -4,6 +4,7 @@ import pyperclip
 
 logger = logging.getLogger(__name__)
 
+
 def copy_to_clipboard(text: str) -> bool:
     """
     Copy the given text to the system clipboard.
@@ -20,6 +21,7 @@ def copy_to_clipboard(text: str) -> bool:
     except pyperclip.PyperclipException as e:
         logger.error(f"Error copying to clipboard: {str(e)}")
         return False
+
 
 def sanitize_path(path: str) -> Path:
     """

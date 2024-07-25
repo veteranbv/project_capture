@@ -1,6 +1,8 @@
 markdown-it-py==3.0.0
 mdurl==0.1.2
 pathspec==0.12.1
+pathvalidate==3.2.0
 Pygments==2.18.0
 pyperclip==1.9.0
+python-dotenv==1.0.1
 rich==13.7.1

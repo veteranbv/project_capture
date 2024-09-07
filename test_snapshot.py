@@ -1,10 +1,10 @@
 import unittest
-import json
-import os
+from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
-from unittest.mock import patch, mock_open, MagicMock
 from datetime import datetime, timedelta
-from rich.console import Console
+import json
+import logging
+import main
 from snapshot.capture import (
     load_gitignore_patterns,
     get_language,
@@ -15,15 +15,13 @@ from snapshot.capture import (
 )
 from snapshot.exceptions import ProjectSnapshotError
 from snapshot.utils import copy_to_clipboard, sanitize_filename
-import main
 
 
 class TestSnapshotFunctions(unittest.TestCase):
     def setUp(self):
         # Suppress Rich console output during tests
         self.original_console = main.console
-        self.null_file = open(os.devnull, "w")
-        main.console = Console(file=self.null_file)
+        main.console = MagicMock()
 
         # Set up global patches
         self.mock_confirm_patcher = patch("rich.prompt.Confirm.ask")
@@ -35,14 +33,32 @@ class TestSnapshotFunctions(unittest.TestCase):
         self.mock_confirm.return_value = False
         self.mock_prompt.return_value = "1"
 
+        # Set up a logger for the tests
+        self.logger = logging.getLogger("test_logger")
+        self.logger.setLevel(logging.DEBUG)
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+
     def tearDown(self):
-        # Restore the original console and close the null file
+        # Restore the original console
         main.console = self.original_console
-        self.null_file.close()
 
         # Stop global patches
         self.mock_confirm_patcher.stop()
         self.mock_prompt_patcher.stop()
+
+    def create_mock_config(self, project_name, include_in_prompt=True):
+        return {
+            "project_name": project_name,
+            "directory": "/fake/path",
+            "output_pattern": f"{project_name}-{{time}}.md",
+            "include_in_prompt": include_in_prompt,
+            "last_used": datetime.now().strftime("%Y-%m-%d"),
+        }
 
     def test_load_gitignore_patterns(self):
         mock_gitignore_content = "*.pyc\n__pycache__\n"
@@ -94,32 +110,6 @@ class TestSnapshotFunctions(unittest.TestCase):
             with self.assertRaises(ProjectSnapshotError):
                 read_file_content(Path("binary_file.exe"))
 
-    @patch("snapshot.capture.load_gitignore_patterns")
-    @patch("snapshot.capture.read_file_content")
-    @patch("builtins.open", new_callable=mock_open)
-    @patch("pathlib.Path.mkdir")
-    def test_save_project_contents(
-        self, mock_mkdir, mock_file, mock_read_content, mock_load_patterns
-    ):
-        mock_load_patterns.return_value = MagicMock()
-        mock_read_content.return_value = "File content"
-        root_dir = Path("/fake/root")
-        output_file = Path("/fake/output/test.md")
-        project_name = "Test Project"
-
-        result = save_project_contents(
-            root_dir, output_file, project_name, include_in_prompt=False
-        )
-
-        mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
-        mock_file.assert_called_with(output_file, "w")
-        handle = mock_file()
-        handle.write.assert_called()
-        self.assertIsInstance(result, dict)
-        self.assertIn("processed", result)
-        self.assertIn("skipped", result)
-        self.assertIn("errors", result)
-
     def test_is_binary_file(self):
         self.assertTrue(is_binary_file(Path("test.jpg")))
         self.assertTrue(is_binary_file(Path("test.exe")))
@@ -139,38 +129,32 @@ class TestSnapshotFunctions(unittest.TestCase):
         self.assertIn("configurations", config)
         self.assertEqual(config["configurations"], [])
 
+    def test_load_config_file_not_found(self):
+        with patch("pathlib.Path.exists", return_value=False):
+            config = main.load_config()
+        self.assertEqual(config, {"configurations": []})
+
     @patch("builtins.open", new_callable=mock_open)
     def test_save_config(self, mock_file):
         config = {"configurations": [{"name": "test"}]}
         main.save_config(config)
         mock_file.assert_called_once_with(main.CONFIG_FILE, "w")
         handle = mock_file()
-
-        # Check if the written content is correct
         written_content = "".join(call.args[0] for call in handle.write.call_args_list)
         expected_content = json.dumps(config, indent=4)
         self.assertEqual(written_content, expected_content)
 
     def test_create_or_edit_configuration(self):
         root_directory = Path("/fake/root")
-        self.mock_confirm.side_effect = [
-            True,
-            True,
-            True,
-        ]  # Use default project name, default filename, include in prompt
-
+        self.mock_confirm.side_effect = [True, True, True]
         result = main.create_or_edit_configuration(root_directory)
-
         self.assertEqual(result["project_name"], "root")
         self.assertEqual(result["output_pattern"], "root_contents-{time}.md")
         self.assertTrue(result["include_in_prompt"])
 
-        # Test with custom inputs
         self.mock_confirm.side_effect = [False, False, False]
         self.mock_prompt.side_effect = ["custom project", "custom_{time}"]
-
         result = main.create_or_edit_configuration(root_directory)
-
         self.assertEqual(result["project_name"], "custom project")
         self.assertEqual(result["output_pattern"], "custom_{time}-{time}.md")
         self.assertFalse(result["include_in_prompt"])
@@ -181,98 +165,62 @@ class TestSnapshotFunctions(unittest.TestCase):
         self.assertEqual(sanitize_filename("test:file.txt"), "testfile.txt")
 
     def test_get_user_choice(self):
-        # Test with no configurations
         self.assertEqual(main.get_user_choice(0), "1")
-
-        # Test with one configuration
         self.mock_prompt.return_value = "1"
         self.assertEqual(main.get_user_choice(1), "1")
-
-        # Test with multiple configurations
         self.mock_prompt.return_value = "2"
         self.assertEqual(main.get_user_choice(3), "2")
 
     @patch("pathlib.Path.is_dir")
     def test_get_target_directory(self, mock_is_dir):
         config = {"last_directory": "/fake/path"}
-
-        # Test when user doesn't want to update
         self.mock_confirm.return_value = False
         result = main.get_target_directory(config)
         self.assertEqual(result, Path("/fake/path"))
 
-        # Test when user wants to update and provides a valid directory
         self.mock_confirm.return_value = True
         self.mock_prompt.return_value = "/new/path"
         mock_is_dir.return_value = True
         result = main.get_target_directory(config)
         self.assertEqual(result, Path("/new/path"))
 
-        # Test when user provides an invalid directory, then a valid one
         self.mock_prompt.side_effect = ["/invalid/path", "/valid/path"]
         mock_is_dir.side_effect = [False, True]
         result = main.get_target_directory(config)
         self.assertEqual(result, Path("/valid/path"))
 
-    @patch("main.create_or_edit_configuration")
-    @patch("main.get_user_choice")
-    @patch("main.get_target_directory")
-    @patch("main.load_config")
-    @patch("main.save_config")
-    @patch("main.save_project_contents")
-    def test_main_new_config_handling(
-        self,
-        mock_save_contents,
-        mock_save_config,
-        mock_load_config,
-        mock_get_target,
-        mock_get_choice,
-        mock_create_config,
-    ):
-        mock_load_config.return_value = {
-            "configurations": [
-                {
-                    "project_name": "existing_project",
-                    "directory": "/fake/path",
-                    "output_pattern": "existing_pattern-{time}.md",
-                    "include_in_prompt": True,
-                    "last_used": "2024-07-23",
-                }
-            ]
-        }
-        mock_get_target.return_value = Path("/fake/path")
-        mock_get_choice.side_effect = [
-            "4",
-            "1",
-        ]  # Choose to create new configuration, then use it
-        mock_create_config.return_value = {
-            "project_name": "new_project",
-            "directory": "/fake/path",
-            "output_pattern": "new_pattern-{time}.md",
-            "include_in_prompt": False,
-        }
-        mock_save_contents.return_value = {"processed": 1, "skipped": 0, "errors": []}
-        self.mock_confirm.return_value = False  # Don't copy to clipboard
+    def test_is_duplicate_config(self):
+        existing_configs = [
+            self.create_mock_config("test1"),
+            self.create_mock_config("test2", include_in_prompt=False),
+        ]
 
-        main.main()
+        duplicate_config = self.create_mock_config("test1")
+        self.assertTrue(main.is_duplicate_config(duplicate_config, existing_configs))
 
-        mock_save_config.assert_called()
-        saved_config = mock_save_config.call_args[0][0]
+        new_config = self.create_mock_config("test3")
+        self.assertFalse(main.is_duplicate_config(new_config, existing_configs))
 
-        self.assertEqual(len(saved_config["configurations"]), 2)
-        new_config = saved_config["configurations"][1]
-        self.assertEqual(new_config["project_name"], "new_project")
-        self.assertEqual(new_config["output_pattern"], "new_pattern-{time}.md")
-        self.assertFalse(new_config["include_in_prompt"])
-        self.assertIn(
-            new_config["last_used"],
-            [
-                datetime.now().strftime("%Y-%m-%d"),
-                (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
-            ],
+    def test_add_configuration(self):
+        config = {"configurations": []}
+        new_config = self.create_mock_config("test")
+
+        main.add_configuration(config, new_config)
+        self.assertEqual(len(config["configurations"]), 1)
+        self.assertEqual(config["configurations"][0], new_config)
+
+    def test_add_configuration_max_limit(self):
+        config = {"configurations": []}
+        for i in range(main.MAX_CONFIGS_PER_PROJECT + 2):
+            new_config = self.create_mock_config(f"test{i}")
+            main.add_configuration(config, new_config)
+
+        self.assertEqual(len(config["configurations"]), main.MAX_CONFIGS_PER_PROJECT)
+        self.assertEqual(
+            config["configurations"][-1]["project_name"],
+            f"test{main.MAX_CONFIGS_PER_PROJECT + 1}",
         )
 
-    @patch("main.create_or_edit_configuration")
     @patch("main.get_user_choice")
     @patch("main.get_target_directory")
     @patch("main.load_config")
@@ -285,180 +233,243 @@ class TestSnapshotFunctions(unittest.TestCase):
         mock_load_config,
         mock_get_target,
         mock_get_choice,
-        mock_create_config,
     ):
-        mock_load_config.return_value = {
+        initial_config = {
             "configurations": [
-                {
-                    "project_name": "project1",
-                    "directory": "/fake/path",
-                    "output_pattern": "pattern1-{time}.md",
-                    "include_in_prompt": True,
-                    "last_used": "2024-07-23",
-                },
-                {
-                    "project_name": "project2",
-                    "directory": "/fake/path",
-                    "output_pattern": "pattern2-{time}.md",
-                    "include_in_prompt": False,
-                    "last_used": "2024-07-24",
-                },
+                self.create_mock_config("project1"),
+                self.create_mock_config("project2", include_in_prompt=False),
             ]
         }
+
+        mock_load_config.return_value = initial_config.copy()
         mock_get_target.return_value = Path("/fake/path")
         mock_get_choice.side_effect = [
-            "3",
-            "1",
-        ]  # Choose to delete, then use remaining config
-        self.mock_prompt.side_effect = [
-            "1",
-            "1",
-        ]  # Select first config to delete, then use remaining config
+            "3",  # Delete
+            "2",  # Choose second config
+            "1",  # Use remaining config
+        ]
         mock_save_contents.return_value = {"processed": 1, "skipped": 0, "errors": []}
-        self.mock_confirm.return_value = False  # Don't copy to clipboard
 
         main.main()
 
         mock_save_config.assert_called()
         saved_config = mock_save_config.call_args[0][0]
 
-        self.assertEqual(len(saved_config["configurations"]), 1)
-        remaining_config = saved_config["configurations"][0]
-        self.assertEqual(remaining_config["project_name"], "project2")
-        self.assertEqual(remaining_config["output_pattern"], "pattern2-{time}.md")
-        self.assertFalse(remaining_config["include_in_prompt"])
-        self.assertIn(
-            remaining_config["last_used"],
-            [
-                datetime.now().strftime("%Y-%m-%d"),
-                (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
-            ],
+        self.assertEqual(
+            len(saved_config["configurations"]),
+            1,
+            "Configuration was not deleted correctly",
+        )
+        self.assertEqual(
+            saved_config["configurations"][0]["project_name"],
+            "project1",
+            "Wrong configuration was deleted",
         )
 
-    @patch("main.create_or_edit_configuration")
+        # Simulate running main again with the updated configuration
+        mock_load_config.reset_mock()
+        mock_load_config.return_value = saved_config
+        mock_get_choice.side_effect = ["1"]  # Use the remaining config
+
+        main.main()
+
+        mock_save_config.assert_called()
+        final_config = mock_save_config.call_args[0][0]
+
+        self.assertEqual(
+            len(final_config["configurations"]),
+            1,
+            "Final configuration count is incorrect",
+        )
+        self.assertEqual(
+            final_config["configurations"][0]["project_name"],
+            "project1",
+            "Final configuration is incorrect",
+        )
+
     @patch("main.get_user_choice")
     @patch("main.get_target_directory")
     @patch("main.load_config")
     @patch("main.save_config")
     @patch("main.save_project_contents")
-    def test_main_edit_config(
+    def test_main_create_new_config(
         self,
         mock_save_contents,
         mock_save_config,
         mock_load_config,
         mock_get_target,
         mock_get_choice,
-        mock_create_config,
     ):
-        mock_load_config.return_value = {
-            "configurations": [
-                {
-                    "project_name": "existing_project",
-                    "directory": "/fake/path",
-                    "output_pattern": "existing_pattern-{time}.md",
-                    "include_in_prompt": True,
-                    "last_used": "2024-07-23",
-                }
-            ]
-        }
+        initial_config = {"configurations": []}
+
+        mock_load_config.return_value = initial_config.copy()
         mock_get_target.return_value = Path("/fake/path")
-        mock_get_choice.side_effect = [
-            "2",
-            "1",
-        ]  # Choose to edit, then use the edited config
-        self.mock_prompt.return_value = "1"  # Choose the first configuration to edit
-        mock_create_config.return_value = {
-            "project_name": "edited_project",
-            "directory": "/fake/path",
-            "output_pattern": "edited_pattern-{time}.md",
-            "include_in_prompt": False,
-        }
+        mock_get_choice.side_effect = ["1"]  # Create new configuration
+        self.mock_confirm.side_effect = [
+            True,
+            True,
+            True,
+            False,
+        ]  # Use defaults for new config, don't copy to clipboard
         mock_save_contents.return_value = {"processed": 1, "skipped": 0, "errors": []}
-        self.mock_confirm.return_value = False  # Don't copy to clipboard
 
         main.main()
 
         mock_save_config.assert_called()
         saved_config = mock_save_config.call_args[0][0]
 
-        self.assertEqual(len(saved_config["configurations"]), 1)
-        edited_config = saved_config["configurations"][0]
-        self.assertEqual(edited_config["project_name"], "edited_project")
-        self.assertEqual(edited_config["output_pattern"], "edited_pattern-{time}.md")
-        self.assertFalse(edited_config["include_in_prompt"])
-        self.assertIn(
-            edited_config["last_used"],
-            [
-                datetime.now().strftime("%Y-%m-%d"),
-                (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"),
-            ],
+        self.assertEqual(
+            len(saved_config["configurations"]),
+            1,
+            "New configuration was not created correctly",
+        )
+        self.assertEqual(
+            saved_config["configurations"][0]["project_name"],
+            "path",
+            "Wrong project name for new configuration",
         )
 
-    def test_is_duplicate_config(self):
-        existing_configs = [
-            {
-                "project_name": "test1",
-                "directory": "/path/1",
-                "output_pattern": "test1_{time}.md",
-                "include_in_prompt": True,
-            },
-            {
-                "project_name": "test2",
-                "directory": "/path/2",
-                "output_pattern": "test2_{time}.md",
-                "include_in_prompt": False,
-            },
+    @patch("snapshot.capture.Path.mkdir")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("snapshot.capture.load_gitignore_patterns")
+    @patch("snapshot.capture.os.walk")
+    @patch("snapshot.capture.read_file_content")
+    def test_save_project_contents(
+        self, mock_read_content, mock_walk, mock_load_patterns, mock_file, mock_mkdir
+    ):
+        root_directory = Path("/fake/root")
+        output_path = Path("/fake/output/project_contents.md")
+        project_name = "test_project"
+        include_in_prompt = True
+
+        mock_load_patterns.return_value.match_file.return_value = False
+        mock_walk.return_value = [
+            ("/fake/root", ["dir1"], ["file1.txt", "file2.py"]),
+            ("/fake/root/dir1", [], ["file3.md"]),
+        ]
+        mock_read_content.return_value = "File content"
+
+        result = save_project_contents(
+            root_directory, output_path, project_name, include_in_prompt
+        )
+
+        self.assertEqual(result["processed"], 3)
+        self.assertEqual(result["skipped"], 0)
+        self.assertEqual(result["errors"], [])
+
+        mock_mkdir.assert_called()
+        mock_file.assert_called_with(output_path, "w")
+        handle = mock_file()
+        written_content = "".join(call.args[0] for call in handle.write.call_args_list)
+        self.assertIn("# Project Snapshot: test_project", written_content)
+        self.assertIn("## Directory Tree", written_content)
+        self.assertIn("## File Contents", written_content)
+        self.assertIn("### file1.txt", written_content)
+        self.assertIn("### file2.py", written_content)
+        self.assertIn("### dir1/file3.md", written_content)
+
+    @patch("snapshot.capture.Path.mkdir")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("snapshot.capture.load_gitignore_patterns")
+    @patch("snapshot.capture.os.walk")
+    @patch("snapshot.capture.read_file_content")
+    def test_save_project_contents_with_errors(
+        self, mock_read_content, mock_walk, mock_load_patterns, mock_file, mock_mkdir
+    ):
+        root_directory = Path("/fake/root")
+        output_path = Path("/fake/output/project_contents.md")
+        project_name = "test_project"
+        include_in_prompt = True
+
+        mock_load_patterns.return_value.match_file.return_value = False
+        mock_walk.return_value = [("/fake/root", [], ["file1.txt", "file2.bin"])]
+        mock_read_content.side_effect = [
+            "File content",
+            ProjectSnapshotError("Binary file"),
         ]
 
-        # Test duplicate config
-        duplicate_config = {
-            "project_name": "test1",
-            "directory": "/path/1",
-            "output_pattern": "test1_{time}.md",
-            "include_in_prompt": True,
-        }
-        self.assertTrue(main.is_duplicate_config(duplicate_config, existing_configs))
-
-        # Test non-duplicate config
-        new_config = {
-            "project_name": "test3",
-            "directory": "/path/3",
-            "output_pattern": "test3_{time}.md",
-            "include_in_prompt": True,
-        }
-        self.assertFalse(main.is_duplicate_config(new_config, existing_configs))
-
-    def test_add_configuration(self):
-        config = {"configurations": []}
-        new_config = {
-            "project_name": "test",
-            "directory": "/path/test",
-            "output_pattern": "test_{time}.md",
-            "include_in_prompt": True,
-            "last_used": datetime.now().strftime("%Y-%m-%d"),
-        }
-
-        # Test adding a new configuration
-        main.add_configuration(config, new_config)
-        self.assertEqual(len(config["configurations"]), 1)
-        self.assertEqual(config["configurations"][0], new_config)
-
-        # Test FIFO behavior
-        for i in range(1, main.MAX_CONFIGS_PER_PROJECT + 1):
-            new_config = {
-                "project_name": f"test{i}",
-                "directory": "/path/test",
-                "output_pattern": f"test{i}_{{time}}.md",
-                "include_in_prompt": True,
-                "last_used": datetime.now().strftime("%Y-%m-%d"),
-            }
-            main.add_configuration(config, new_config)
-
-        self.assertEqual(len(config["configurations"]), main.MAX_CONFIGS_PER_PROJECT)
-        self.assertEqual(
-            config["configurations"][-1]["project_name"],
-            f"test{main.MAX_CONFIGS_PER_PROJECT}",
+        result = save_project_contents(
+            root_directory, output_path, project_name, include_in_prompt
         )
+
+        self.assertEqual(result["processed"], 1)
+        self.assertEqual(result["skipped"], 1)
+        self.assertEqual(len(result["errors"]), 1)
+
+        mock_mkdir.assert_called()
+        mock_file.assert_called_with(output_path, "w")
+        handle = mock_file()
+        written_content = "".join(call.args[0] for call in handle.write.call_args_list)
+        self.assertIn("# Project Snapshot: test_project", written_content)
+        self.assertIn("## Directory Tree", written_content)
+        self.assertIn("## File Contents", written_content)
+        self.assertIn("### file1.txt", written_content)
+        self.assertIn("### file2.bin", written_content)
+        self.assertIn("File content not displayed due to an error", written_content)
+
+    @patch("main.get_user_choice")
+    @patch("main.get_target_directory")
+    @patch("main.load_config")
+    @patch("main.save_config")
+    @patch("main.save_project_contents")
+    @patch("main.copy_to_clipboard")
+    def test_main_integration(
+        self,
+        mock_copy_to_clipboard,
+        mock_save_contents,
+        mock_save_config,
+        mock_load_config,
+        mock_get_target,
+        mock_get_choice,
+    ):
+        initial_config = {
+            "configurations": [
+                self.create_mock_config("project1"),
+                self.create_mock_config("project2", include_in_prompt=False),
+            ]
+        }
+
+        mock_load_config.return_value = initial_config.copy()
+        mock_get_target.return_value = Path("/fake/path")
+        mock_get_choice.side_effect = ["1"]  # Use existing configuration
+        mock_save_contents.return_value = {"processed": 10, "skipped": 2, "errors": []}
+        mock_copy_to_clipboard.return_value = True
+        self.mock_confirm.side_effect = [True]  # Copy to clipboard
+
+        with patch("main.datetime") as mock_datetime:
+            mock_datetime.now.return_value.strftime.return_value = "2023-07-25-120000"
+            main.main()
+
+        mock_save_config.assert_called()
+        mock_save_contents.assert_called_with(
+            Path("/fake/path"),
+            Path("/fake/path/output/project1/project1-2023-07-25-120000.md"),
+            "project1",
+            True,
+        )
+        mock_copy_to_clipboard.assert_called()
+
+    def test_delete_configuration(self):
+        config = {
+            "configurations": [
+                self.create_mock_config("project1"),
+                self.create_mock_config("project2"),
+            ]
+        }
+        main.delete_configuration(config, 0)
+        self.assertEqual(len(config["configurations"]), 1)
+        self.assertEqual(config["configurations"][0]["project_name"], "project2")
+
+    def test_edit_configuration(self):
+        config = {
+            "configurations": [
+                self.create_mock_config("project1"),
+                self.create_mock_config("project2"),
+            ]
+        }
+        new_config = self.create_mock_config("edited_project")
+        main.edit_configuration(config, 0, new_config)
+        self.assertEqual(config["configurations"][0]["project_name"], "edited_project")
 
 
 if __name__ == "__main__":

@@ -229,13 +229,26 @@ def is_duplicate_config(new_config: dict, existing_configs: list) -> bool:
     return False
 
 
-def delete_configuration(config, index):
-    """Delete a configuration from the list."""
+def delete_configuration(config: dict, index: int) -> None:
+    """
+    Delete a configuration from the list.
+
+    Args:
+        config (dict): The configuration dictionary.
+        index (int): The index of the configuration to delete.
+    """
     del config["configurations"][index]
 
 
-def edit_configuration(config, index, new_config):
-    """Edit an existing configuration."""
+def edit_configuration(config: dict, index: int, new_config: dict) -> None:
+    """
+    Edit an existing configuration.
+
+    Args:
+        config (dict): The configuration dictionary.
+        index (int): The index of the configuration to edit.
+        new_config (dict): The new configuration data.
+    """
     config["configurations"][index] = new_config
 
 
@@ -300,9 +313,14 @@ def main():
                     edited_config = create_or_edit_configuration(
                         root_directory, matching_configs[index]
                     )
-                    edit_configuration(config, config["configurations"].index(matching_configs[index]), edited_config)
+                    edit_configuration(
+                        config,
+                        config["configurations"].index(matching_configs[index]),
+                        edited_config,
+                    )
                     matching_configs[index] = edited_config
                     selected_config = edited_config
+                    save_config(config)
                     break
                 elif choice == str(len(matching_configs) + 2):  # Delete
                     delete_choice = Prompt.ask(
@@ -310,11 +328,27 @@ def main():
                         choices=[str(i) for i in range(1, len(matching_configs) + 1)],
                     )
                     index = int(delete_choice) - 1
-                    delete_configuration(config, config["configurations"].index(matching_configs[index]))
-                    del matching_configs[index]
+                    config_index = config["configurations"].index(
+                        matching_configs[index]
+                    )
+                    deleted_config = config["configurations"].pop(config_index)
+                    matching_configs.pop(index)
                     save_config(config)
-                    console.print("[green]Configuration deleted successfully.[/green]")
+                    console.print(
+                        f"[green]Configuration '{deleted_config['project_name']}' deleted successfully.[/green]"
+                    )
+                    if not matching_configs:
+                        console.print(
+                            "[yellow]No configurations left. Creating a new one.[/yellow]"
+                        )
+                        new_config = create_or_edit_configuration(root_directory)
+                        add_configuration(config, new_config)
+                        matching_configs.append(new_config)
+                        selected_config = new_config
+                        save_config(config)
+                        break
                     continue
+
                 else:  # Create new
                     new_config = create_or_edit_configuration(root_directory)
                     if is_duplicate_config(new_config, matching_configs):
@@ -330,6 +364,7 @@ def main():
                         add_configuration(config, new_config)
                         matching_configs.append(new_config)
                         selected_config = new_config
+                    save_config(config)
                     break
             else:
                 console.print(
@@ -341,6 +376,7 @@ def main():
                 console.print()
                 selected_config = create_or_edit_configuration(root_directory)
                 add_configuration(config, selected_config)
+                save_config(config)
                 break
 
         selected_config["last_used"] = datetime.now().strftime("%Y-%m-%d")
@@ -360,7 +396,7 @@ def main():
             time=datetime.now().strftime("%Y-%m-%d-%H%M%S")
         )
         output_path = (
-            root_directory
+            Path(__file__).resolve().parent
             / "output"
             / selected_config["project_name"]
             / output_filename

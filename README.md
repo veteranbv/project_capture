@@ -5,7 +5,7 @@ Project Snapshot is a powerful and user-friendly tool designed to capture the es
 ## Features
 
 - 🧠 AI-Ready: Captures project contents in a format optimized for AI/LLM consumption
-- 🎨 Modern CLI: Intuitive and visually appealing command-line interface
+- 🎨 Modern UI: Intuitive and visually appealing web interface using Streamlit
 - 📁 Smart Filtering: Honors `.gitignore` patterns and excludes common build artifacts
 - 🌳 Directory Tree: Generates a clear visual representation of your project structure
 - 📄 File Contents: Captures the contents of all relevant project files
@@ -38,10 +38,12 @@ Project Snapshot is a powerful and user-friendly tool designed to capture the es
 
 ## Usage
 
-Run the script to generate the project snapshot:
+### Streamlit Web Interface
+
+Run the Streamlit app to use the web interface:
 
 ```sh
-python main.py
+streamlit run main.py
 ```
 
 Follow the intuitive prompts to:

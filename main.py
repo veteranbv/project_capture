@@ -1,16 +1,17 @@
-import sys
 import json
-from pathlib import Path
+import sys
 from datetime import datetime
-import logging
-from rich.console import Console
-from rich.panel import Panel
-from rich.prompt import Prompt, Confirm
-from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from pathlib import Path
+
+from rich.console import Console  # type: ignore
+from rich.panel import Panel  # type: ignore
+from rich.progress import Progress, SpinnerColumn, TextColumn  # type: ignore
+from rich.prompt import Confirm, Prompt  # type: ignore
+from rich.table import Table  # type: ignore
+
 from snapshot.capture import save_project_contents
 from snapshot.exceptions import ProjectSnapshotError
-from snapshot.utils import copy_to_clipboard, configure_logging, sanitize_filename
+from snapshot.utils import configure_logging, copy_to_clipboard, sanitize_filename
 
 CONFIG_FILE = "config.json"
 MAX_CONFIGS_PER_PROJECT = 5
@@ -59,7 +60,7 @@ def save_config(config: dict) -> None:
 
 def get_target_directory(config: dict) -> Path:
     """
-    Prompt user for the target directory.
+    Prompt user for the target directory, defaulting to Yes for updates.
 
     Args:
         config (dict): The current configuration.
@@ -69,7 +70,7 @@ def get_target_directory(config: dict) -> Path:
     """
     current_directory = config.get("last_directory", str(Path.cwd()))
     console.print(Panel(f"Current target directory: [cyan]{current_directory}[/cyan]"))
-    if Confirm.ask("Would you like to update the target directory?"):
+    if Confirm.ask("Would you like to update the target directory?", default=True):
         while True:
             new_directory = Prompt.ask("Enter new target directory")
             if Path(new_directory).is_dir():
@@ -107,7 +108,7 @@ def display_configurations(configurations: list) -> None:
 
 def get_user_choice(config_count: int) -> str:
     """
-    Prompt user for action choice.
+    Prompt user for action choice, defaulting to choice "1".
 
     Args:
         config_count (int): The number of existing configurations.
@@ -120,14 +121,14 @@ def get_user_choice(config_count: int) -> str:
         return "1"  # Automatically create a new configuration
     elif config_count == 1:
         actions = [
-            "[1]. Use the existing configuration",
+            "[bold green][1][/bold green]. Use the existing configuration (default)",
             "2. Edit the existing configuration",
             "3. Delete the existing configuration",
             "4. Create new configuration",
         ]
     else:
         actions = [
-            f"[1-{config_count}]. Choose an existing configuration",
+            f"[bold green][1-{config_count}][/bold green]. Choose an existing configuration (default)",
             f"{config_count + 1}. Edit a configuration",
             f"{config_count + 2}. Delete a configuration",
             f"{config_count + 3}. Create new configuration",
@@ -139,18 +140,23 @@ def get_user_choice(config_count: int) -> str:
 
     choices = [str(i) for i in range(1, len(actions) + 1)]
     choice_range = f"[1-{len(choices)}]"
-    return Prompt.ask(f"\nEnter your choice {choice_range}", choices=choices)
+    return Prompt.ask(
+        f"\nEnter your choice {choice_range} (press Enter to use existing configuration)",
+        choices=choices,
+        default="1",
+        show_default=True,
+    )
 
 
 def create_or_edit_configuration(
-    root_directory: Path, existing_config: dict = None
+    root_directory: Path, existing_config: dict | None = None
 ) -> dict:
     """
     Create a new configuration or edit an existing one.
 
     Args:
         root_directory (Path): The root directory of the project.
-        existing_config (dict, optional): An existing configuration to edit. Defaults to None.
+        existing_config (dict | None, optional): An existing configuration to edit. Defaults to None.
 
     Returns:
         dict: The new or updated configuration.
@@ -435,7 +441,9 @@ def main():
                 "\n[bold yellow]Note:[/bold yellow] Some errors were encountered. Check the log file for details."
             )
 
-        if Confirm.ask("Would you like to copy the output path to clipboard?"):
+        if Confirm.ask(
+            "Would you like to copy the output path to clipboard?", default=False
+        ):
             if copy_to_clipboard(str(output_path)):
                 console.print("[green]Output path copied to clipboard.[/green]")
             else:

@@ -122,7 +122,7 @@ def main():
                     "include_in_prompt": include_in_prompt,
                     "last_used": datetime.now().strftime("%Y-%m-%d"),
                 }
-                
+
                 if action == "Edit":
                     config["configurations"][config["configurations"].index(selected_config)] = new_config
                 else:
@@ -131,9 +131,10 @@ def main():
                         config["configurations"] = [c for c in config["configurations"] if c["directory"] != root_directory] + [new_config]
                     else:
                         config["configurations"].append(new_config)
-                
+
                 save_config(config)
                 st.success("Configuration saved!")
+                st.session_state.selected_config = new_config  # Ensure the new config is selected
                 st.rerun()  # Changed from st.experimental_rerun()
         
         elif action == "Delete":
@@ -151,10 +152,13 @@ def main():
     with col1:
         st.subheader("Project Details")
         st.write(f"**Directory:** {root_directory}")
-        if 'selected_config' in locals():
+        if 'selected_config' in st.session_state:
+            selected_config = st.session_state.selected_config
             st.write(f"**Project Name:** {selected_config['project_name']}")
             st.write(f"**Output Pattern:** {selected_config['output_pattern']}")
             st.write(f"**Include in AI Prompt:** {'Yes' if selected_config['include_in_prompt'] else 'No'}")
+        else:
+            st.write("No configuration selected.")
     
     with col2:
         st.subheader("Actions")

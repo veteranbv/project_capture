@@ -55,6 +55,7 @@ var/
 *.egg
 pip-log.txt
 pip-delete-this-directory.txt
+.mypy_cache/
 
 #######################################
 # Operating Systems                   #
@@ -76,7 +77,6 @@ ehthumbs.db
 $RECYCLE.BIN/
 Icon?
 
-
 #######################################
 # Temporary                           #
 #######################################
@@ -90,7 +90,6 @@ log/
 logs/
 tmp/
 cache/
-
 
 #######################################
 # Archives                            #
@@ -112,7 +111,6 @@ cache/
 *.xpi
 *.xz
 *.zip
-
 
 #######################################
 # IDE and Editors                     #
@@ -173,7 +171,6 @@ Session.vim
 # Editors with AutoBackup
 *~
 
-
 #######################################
 # Build Systems                       #
 #######################################
@@ -200,7 +197,6 @@ pom.xml.next
 release.properties
 dependency-reduced-pom.xml
 
-
 #######################################
 # Version Control Systems             #
 #######################################
@@ -212,7 +208,6 @@ dependency-reduced-pom.xml
 
 # SVN
 .svn/
-
 
 #######################################
 # Languages                           #
@@ -304,7 +299,6 @@ project/target
 .scala_dependencies
 .worksheet
 
-
 #######################################
 # Server                              #
 #######################################
@@ -326,14 +320,12 @@ error_log
 .rnd
 .trash/
 
-
 #######################################
 # Caches                              #
 #######################################
 
 # SASS
 .sass-cache
-
 
 #######################################
 # File backups                        #
@@ -352,3 +344,4 @@ output/*
 .git/*
 .project_snapshot.log
 config.json
+output/

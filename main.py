@@ -205,6 +205,21 @@ def create_or_edit_configuration(
         default=existing_config["include_in_prompt"] if existing_config else True,
     )
 
+    # Ask about using gitignore files
+    use_local_gitignore = Confirm.ask(
+        "Use local .gitignore patterns (from current directory)?",
+        default=existing_config.get("use_local_gitignore", True)
+        if existing_config
+        else True,
+    )
+
+    use_project_gitignore = Confirm.ask(
+        "Use project .gitignore patterns (from target directory)?",
+        default=existing_config.get("use_project_gitignore", True)
+        if existing_config
+        else True,
+    )
+
     # Get existing ignore patterns or use empty list
     ignore_patterns = (
         existing_config.get("ignore_patterns", []) if existing_config else []
@@ -305,6 +320,8 @@ def create_or_edit_configuration(
         "directory": str(root_directory),
         "output_pattern": output_pattern,
         "include_in_prompt": include_in_prompt,
+        "use_local_gitignore": use_local_gitignore,
+        "use_project_gitignore": use_project_gitignore,
         "ignore_patterns": ignore_patterns,
         "last_used": datetime.now().strftime("%Y-%m-%d"),
     }
@@ -515,6 +532,9 @@ def main():
                 output_path,
                 selected_config["project_name"],
                 selected_config["include_in_prompt"],
+                selected_config.get("ignore_patterns", []),
+                selected_config.get("use_local_gitignore", True),
+                selected_config.get("use_project_gitignore", True),
             )
 
         console.print(

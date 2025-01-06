@@ -140,6 +140,8 @@ def save_project_contents(
     project_name: str,
     include_in_prompt: bool,
     additional_patterns: list[str] | None = None,
+    use_local_gitignore: bool = True,
+    use_project_gitignore: bool = True,
 ) -> ProjectContentsResult:
     """Save the contents of the project to a markdown file.
 
@@ -149,6 +151,8 @@ def save_project_contents(
         project_name (str): The name of the project
         include_in_prompt (bool): Whether to include the content in an AI prompt
         additional_patterns (list[str] | None, optional): Additional patterns to ignore. Defaults to None.
+        use_local_gitignore (bool, optional): Whether to use local .gitignore patterns. Defaults to True.
+        use_project_gitignore (bool, optional): Whether to use project .gitignore patterns. Defaults to True.
 
     Returns:
         ProjectContentsResult: A dictionary containing:
@@ -164,8 +168,17 @@ def save_project_contents(
     content = [f"# Project Snapshot: {project_name}\n\n"]
 
     try:
-        root_patterns = load_gitignore_patterns(Path.cwd())
-        target_patterns = load_gitignore_patterns(root_directory)
+        # Load gitignore patterns based on settings
+        root_patterns = (
+            load_gitignore_patterns(Path.cwd())
+            if use_local_gitignore
+            else pathspec.PathSpec.from_lines("gitwildmatch", [])
+        )
+        target_patterns = (
+            load_gitignore_patterns(root_directory)
+            if use_project_gitignore
+            else pathspec.PathSpec.from_lines("gitwildmatch", [])
+        )
 
         # Create a new PathSpec for additional patterns if provided
         additional_patterns = additional_patterns or []

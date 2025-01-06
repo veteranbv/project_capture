@@ -161,8 +161,19 @@ def main():
                 value=selected_config["include_in_prompt"],  # type: ignore
             )
 
+            # Gitignore settings
+            st.subheader("Gitignore Settings")
+            use_local_gitignore = st.checkbox(
+                "Use local .gitignore patterns (from current directory)",
+                value=selected_config.get("use_local_gitignore", True),  # type: ignore
+            )
+            use_project_gitignore = st.checkbox(
+                "Use project .gitignore patterns (from target directory)",
+                value=selected_config.get("use_project_gitignore", True),  # type: ignore
+            )
+
             # Ignore patterns management
-            st.subheader("Ignore Patterns")
+            st.subheader("Custom Ignore Patterns")
             ignore_patterns = selected_config.get("ignore_patterns", [])  # type: ignore
 
             # Display current patterns
@@ -193,6 +204,8 @@ def main():
                     "directory": root_directory,
                     "output_pattern": output_pattern,
                     "include_in_prompt": include_in_prompt,
+                    "use_local_gitignore": use_local_gitignore,
+                    "use_project_gitignore": use_project_gitignore,
                     "ignore_patterns": ignore_patterns,
                     "last_used": datetime.now().strftime("%Y-%m-%d"),
                 }
@@ -252,6 +265,12 @@ def main():
             st.write(
                 f"**Include in AI Prompt:** {'Yes' if selected_config['include_in_prompt'] else 'No'}"
             )
+            st.write(
+                f"**Use Local Gitignore:** {'Yes' if selected_config.get('use_local_gitignore', True) else 'No'}"
+            )
+            st.write(
+                f"**Use Project Gitignore:** {'Yes' if selected_config.get('use_project_gitignore', True) else 'No'}"
+            )
             if selected_config.get("ignore_patterns"):
                 st.write("**Custom Ignore Patterns:**")
                 for pattern in selected_config["ignore_patterns"]:
@@ -284,6 +303,8 @@ def main():
                         selected_config["project_name"],
                         selected_config["include_in_prompt"],
                         selected_config.get("ignore_patterns", []),
+                        selected_config.get("use_local_gitignore", True),
+                        selected_config.get("use_project_gitignore", True),
                     )
 
                 st.success(

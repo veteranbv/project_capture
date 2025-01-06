@@ -1,9 +1,12 @@
 import logging
+import mmap
 import os
 from pathlib import Path
-import pathspec
-import mmap
+
+import pathspec  # type: ignore
+
 from snapshot.exceptions import ProjectSnapshotError
+from snapshot.types import ProjectContentsResult
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +48,15 @@ def load_gitignore_patterns(directory: Path) -> pathspec.PathSpec:
     return pathspec.PathSpec.from_lines("gitwildmatch", patterns)
 
 
-def get_language(file_extension):
-    """Get the language identifier for syntax highlighting."""
+def get_language(file_extension: str) -> str:
+    """Get the language identifier for syntax highlighting.
+
+    Args:
+        file_extension (str): The file extension including the dot (e.g. '.py')
+
+    Returns:
+        str: The language identifier for syntax highlighting, or empty string if unknown
+    """
     language_map = {
         ".py": "python",
         ".js": "javascript",
@@ -85,8 +95,15 @@ def get_language(file_extension):
     return language_map.get(file_extension.lower(), "")
 
 
-def escape_markdown(text):
-    """Escape markdown syntax in the given text."""
+def escape_markdown(text: str) -> str:
+    """Escape markdown syntax in the given text.
+
+    Args:
+        text (str): The text to escape
+
+    Returns:
+        str: The escaped text with markdown syntax characters escaped
+    """
     text = text.replace("```", "\\`\\`\\`")
     chars_to_escape = r"\_*[]()#+-.!"
     for char in chars_to_escape:
@@ -122,8 +139,23 @@ def save_project_contents(
     output_filename: Path,
     project_name: str,
     include_in_prompt: bool,
-):
-    """Save the contents of the project to a markdown file."""
+    additional_patterns: list[str] | None = None,
+) -> ProjectContentsResult:
+    """Save the contents of the project to a markdown file.
+
+    Args:
+        root_directory (Path): The root directory of the project
+        output_filename (Path): The output file path
+        project_name (str): The name of the project
+        include_in_prompt (bool): Whether to include the content in an AI prompt
+        additional_patterns (list[str] | None, optional): Additional patterns to ignore. Defaults to None.
+
+    Returns:
+        ProjectContentsResult: A dictionary containing:
+            - processed (int): Number of files processed
+            - skipped (int): Number of files skipped
+            - errors (list[str]): List of error messages
+    """
     logger.info(f"Saving project contents from: {root_directory}")
 
     processed = 0
@@ -135,7 +167,14 @@ def save_project_contents(
         root_patterns = load_gitignore_patterns(Path.cwd())
         target_patterns = load_gitignore_patterns(root_directory)
 
-        all_patterns = root_patterns + target_patterns
+        # Create a new PathSpec for additional patterns if provided
+        additional_patterns = additional_patterns or []
+        custom_patterns = pathspec.PathSpec.from_lines(
+            "gitwildmatch", additional_patterns
+        )
+
+        # Combine all patterns
+        all_patterns = root_patterns + target_patterns + custom_patterns
 
         if include_in_prompt:
             content.append("<project_contents>\n")
@@ -200,25 +239,21 @@ def save_project_contents(
                         content.append("```\n\n")
 
         if include_in_prompt:
-            content.append("</project_contents>\n\n")
-            try:
-                with open("prompt.txt", "r") as f:
-                    content.append(f.read())
-            except IOError as e:
-                logger.error(f"Error reading prompt.txt: {str(e)}")
-                content.append("Error: Unable to include prompt content.\n")
+            content.append("</project_contents>\n")
 
-        try:
-            output_filename.parent.mkdir(parents=True, exist_ok=True)
-        except OSError as e:
-            logger.error(f"Failed to create output directory: {e}")
-            raise ProjectSnapshotError(f"Failed to create output directory: {e}")
+        # Create output directory if it doesn't exist
+        output_filename.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_filename, "w") as f:
-            f.write("".join(content))
+        # Write content to file
+        with output_filename.open("w") as f:
+            f.writelines(content)
 
-        logger.info(f"Project contents saved to: {output_filename}")
-        return {"processed": processed, "skipped": skipped, "errors": errors}
+        return {
+            "processed": processed,
+            "skipped": skipped,
+            "errors": errors,
+        }
+
     except Exception as e:
-        logger.error(f"Error saving project contents: {e}")
-        raise ProjectSnapshotError(f"Error saving project contents: {str(e)}")
+        logger.error(f"Error saving project contents: {str(e)}")
+        raise ProjectSnapshotError(f"Failed to save project contents: {str(e)}")

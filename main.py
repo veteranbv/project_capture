@@ -126,6 +126,7 @@ def get_user_choice(config_count: int) -> str:
             "3. Delete the existing configuration",
             "4. Create new configuration",
         ]
+        choices = ["1", "2", "3", "4"]
     else:
         actions = [
             f"[bold green][1-{config_count}][/bold green]. Choose an existing configuration (default)",
@@ -133,12 +134,12 @@ def get_user_choice(config_count: int) -> str:
             f"{config_count + 2}. Delete a configuration",
             f"{config_count + 3}. Create new configuration",
         ]
+        choices = [str(i) for i in range(1, config_count + 4)]
 
     console.print("\nActions:")
     for action in actions:
         console.print(action)
 
-    choices = [str(i) for i in range(1, len(actions) + 1)]
     choice_range = f"[1-{len(choices)}]"
     return Prompt.ask(
         f"\nEnter your choice {choice_range} (press Enter to use existing configuration)",
@@ -204,11 +205,107 @@ def create_or_edit_configuration(
         default=existing_config["include_in_prompt"] if existing_config else True,
     )
 
+    # Get existing ignore patterns or use empty list
+    ignore_patterns = (
+        existing_config.get("ignore_patterns", []) if existing_config else []
+    )
+
+    # Ask if user wants to edit ignore patterns
+    if Confirm.ask("Would you like to configure ignore patterns?", default=False):
+        console.print("\nYou can either:")
+        console.print("1. Point to an existing ignore file")
+        console.print("2. Edit patterns directly")
+        console.print("3. Skip configuring ignore patterns\n")
+
+        ignore_choice = Prompt.ask(
+            "Choose an option", choices=["1", "2", "3"], default="2"
+        )
+
+        if ignore_choice == "1":
+            console.print(
+                "\nEnter the path to your ignore file (relative to project root):"
+            )
+            console.print("Examples: .gitignore, .npmignore, custom_ignore.txt")
+            ignore_file = Prompt.ask("File path")
+            ignore_file_path = root_directory / ignore_file
+
+            if ignore_file_path.exists() and ignore_file_path.is_file():
+                try:
+                    with ignore_file_path.open("r") as f:
+                        ignore_patterns = [
+                            line.strip()
+                            for line in f
+                            if line.strip() and not line.startswith("#")
+                        ]
+                    console.print(
+                        f"\n[green]Successfully loaded {len(ignore_patterns)} patterns from {ignore_file}[/green]"
+                    )
+                except Exception as e:
+                    console.print(f"[red]Error reading file: {str(e)}[/red]")
+                    console.print("Continuing with existing patterns...")
+            else:
+                console.print(f"[red]File not found: {ignore_file}[/red]")
+                console.print("Continuing with existing patterns...")
+
+        elif ignore_choice == "2":
+            console.print(
+                "\nIgnore patterns use the same syntax as .gitignore files. For example:"
+            )
+            console.print("  • *.log         - Ignore all log files")
+            console.print("  • build/        - Ignore the build directory")
+            console.print("  • test_*.py     - Ignore test files")
+            console.print("  • docs/*.md     - Ignore markdown files in docs directory")
+            console.print("  • !README.md    - Don't ignore README.md (exception)")
+            console.print(
+                "\nThese patterns are in addition to your .gitignore files.\n"
+            )
+
+            while True:
+                console.print("\nCurrent ignore patterns:")
+                if ignore_patterns:
+                    for i, pattern in enumerate(ignore_patterns, 1):
+                        console.print(f"{i}. {pattern}")
+                else:
+                    console.print("[yellow]No custom ignore patterns defined.[/yellow]")
+
+                console.print("""
+1. Add pattern
+2. Remove pattern
+3. Clear all patterns
+4. Done editing
+                """)
+
+                action = Prompt.ask(
+                    "Choose action",
+                    choices=["1", "2", "3", "4"],
+                    default="4",
+                    show_choices=False,
+                )
+
+                if action == "1":
+                    new_pattern = Prompt.ask("Enter new ignore pattern")
+                    if new_pattern and new_pattern not in ignore_patterns:
+                        ignore_patterns.append(new_pattern)
+                elif action == "2" and ignore_patterns:
+                    pattern_num = Prompt.ask(
+                        "Enter pattern number to remove",
+                        choices=[str(i) for i in range(1, len(ignore_patterns) + 1)],
+                    )
+                    ignore_patterns.pop(int(pattern_num) - 1)
+                elif action == "3":
+                    if Confirm.ask(
+                        "Are you sure you want to clear all patterns?", default=False
+                    ):
+                        ignore_patterns = []
+                elif action == "4":
+                    break
+
     return {
         "project_name": project_name,
         "directory": str(root_directory),
         "output_pattern": output_pattern,
         "include_in_prompt": include_in_prompt,
+        "ignore_patterns": ignore_patterns,
         "last_used": datetime.now().strftime("%Y-%m-%d"),
     }
 
@@ -354,8 +451,7 @@ def main():
                         save_config(config)
                         break
                     continue
-
-                else:  # Create new
+                elif choice == str(len(matching_configs) + 3):  # Create new
                     new_config = create_or_edit_configuration(root_directory)
                     if is_duplicate_config(new_config, matching_configs):
                         console.print(

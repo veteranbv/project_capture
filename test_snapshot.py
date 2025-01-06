@@ -1,17 +1,18 @@
-import unittest
-from unittest.mock import patch, MagicMock, mock_open
-from pathlib import Path
-from datetime import datetime, timedelta
 import json
 import logging
+import unittest
+from datetime import datetime
+from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
+
 import main
 from snapshot.capture import (
-    load_gitignore_patterns,
-    get_language,
     escape_markdown,
+    get_language,
+    is_binary_file,
+    load_gitignore_patterns,
     read_file_content,
     save_project_contents,
-    is_binary_file,
 )
 from snapshot.exceptions import ProjectSnapshotError
 from snapshot.utils import copy_to_clipboard, sanitize_filename
@@ -51,7 +52,18 @@ class TestSnapshotFunctions(unittest.TestCase):
         self.mock_confirm_patcher.stop()
         self.mock_prompt_patcher.stop()
 
-    def create_mock_config(self, project_name, include_in_prompt=True):
+    def create_mock_config(
+        self, project_name: str, include_in_prompt: bool = True
+    ) -> dict[str, str | bool]:
+        """Create a mock configuration for testing.
+
+        Args:
+            project_name (str): The name of the project
+            include_in_prompt (bool, optional): Whether to include in prompt. Defaults to True.
+
+        Returns:
+            dict[str, str | bool]: A mock configuration dictionary
+        """
         return {
             "project_name": project_name,
             "directory": "/fake/path",
@@ -470,6 +482,75 @@ class TestSnapshotFunctions(unittest.TestCase):
         new_config = self.create_mock_config("edited_project")
         main.edit_configuration(config, 0, new_config)
         self.assertEqual(config["configurations"][0]["project_name"], "edited_project")
+
+    def test_save_project_contents_with_additional_patterns(self) -> None:
+        """Test that additional ignore patterns are correctly applied."""
+        additional_patterns = ["*.md", "test_*"]
+
+        with (
+            patch("pathlib.Path.mkdir"),
+            patch("builtins.open", mock_open()),
+            patch("snapshot.capture.load_gitignore_patterns") as mock_load_patterns,
+            patch("snapshot.capture.os.walk") as mock_walk,
+            patch("snapshot.capture.read_file_content") as mock_read_content,
+        ):
+            # Setup mock patterns
+            mock_load_patterns.return_value.match_file.return_value = False
+
+            # Setup mock walk
+            mock_walk.return_value = [
+                ("/fake/root", [], ["file1.txt", "test_file.py", "README.md"]),
+            ]
+
+            # Setup mock content
+            mock_read_content.return_value = "File content"
+
+            result = save_project_contents(
+                Path("/fake/root"),
+                Path("/fake/output/test.md"),
+                "test_project",
+                True,
+                additional_patterns,
+            )
+
+            # Verify that files matching additional patterns were excluded
+            self.assertEqual(
+                result["processed"], 1
+            )  # Only file1.txt should be processed
+            self.assertEqual(result["skipped"], 0)
+            self.assertEqual(result["errors"], [])
+
+    def test_save_project_contents_with_empty_additional_patterns(self):
+        with (
+            patch("pathlib.Path.mkdir"),
+            patch("builtins.open", mock_open()),
+            patch("snapshot.capture.load_gitignore_patterns") as mock_load_patterns,
+            patch("snapshot.capture.os.walk") as mock_walk,
+            patch("snapshot.capture.read_file_content") as mock_read_content,
+        ):
+            # Setup mock patterns
+            mock_load_patterns.return_value.match_file.return_value = False
+
+            # Setup mock walk
+            mock_walk.return_value = [
+                ("/fake/root", [], ["file1.txt", "file2.py"]),
+            ]
+
+            # Setup mock content
+            mock_read_content.return_value = "File content"
+
+            result = save_project_contents(
+                Path("/fake/root"),
+                Path("/fake/output/test.md"),
+                "test_project",
+                True,
+                [],  # Empty additional patterns
+            )
+
+            # Verify that all files were processed since no additional patterns
+            self.assertEqual(result["processed"], 2)
+            self.assertEqual(result["skipped"], 0)
+            self.assertEqual(result["errors"], [])
 
 
 if __name__ == "__main__":

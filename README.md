@@ -6,7 +6,11 @@ Project Snapshot is a powerful and user-friendly tool designed to capture the es
 
 - 🧠 AI-Ready: Captures project contents in a format optimized for AI/LLM consumption
 - 🎨 Modern UI: Intuitive and visually appealing web interface using Streamlit
-- 📁 Smart Filtering: Honors `.gitignore` patterns and excludes common build artifacts
+- 📁 Smart Filtering: Granular control over `.gitignore` patterns and custom ignore rules:
+  - Use local and/or project `.gitignore` files
+  - Import patterns from existing files
+  - Define custom ignore patterns
+  - Configure per project
 - 🌳 Directory Tree: Generates a clear visual representation of your project structure
 - 📄 File Contents: Captures the contents of all relevant project files
 - 🔧 Configurable: Easily customizable output and project names
@@ -133,7 +137,38 @@ The generated snapshot will be saved in the `output/` directory, organized by pr
 
 ## Configuration
 
-The tool uses a `config.json` file to store your preferences and project configurations. This file is created automatically when you run the tool for the first time and is updated as you make choices. You don't need to edit this file manually.
+The tool uses a `config.json` file to store your preferences and project configurations. This file is created automatically when you run the tool for the first time and is updated as you make choices. Each project configuration can include:
+
+- Project name and output pattern
+- AI prompt inclusion setting
+- Gitignore settings (local and project)
+- Custom ignore patterns
+- Last used timestamp
+
+You don't need to edit this file manually - both the CLI and web UI provide easy ways to manage your configurations.
+
+## Ignore Pattern Management
+
+The tool provides flexible ways to control which files are included in your snapshots:
+
+1. Gitignore Integration:
+   - Automatically respects local `.gitignore` (from current directory)
+   - Automatically respects project `.gitignore` (from target directory)
+   - Each can be enabled/disabled per configuration
+
+2. Custom Patterns:
+   - Import patterns from existing files (`.gitignore`, `.npmignore`, etc.)
+   - Add/remove patterns directly in the interface
+   - Uses standard `.gitignore` syntax
+
+3. Pattern Syntax Examples:
+   - `*.log` - Ignore all log files
+   - `build/` - Ignore the build directory
+   - `test_*.py` - Ignore test files
+   - `docs/*.md` - Ignore markdown files in docs directory
+   - `!README.md` - Don't ignore README.md (exception)
+
+These patterns work together to give you precise control over your project snapshots.
 
 ## Logging
 

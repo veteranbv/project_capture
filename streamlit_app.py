@@ -180,25 +180,38 @@ def main():
             if ignore_patterns:
                 st.write("Current patterns:")
                 for i, pattern in enumerate(ignore_patterns):
-                    col1, col2 = st.columns([3, 1])
-                    with col1:
-                        st.text(pattern)
-                    with col2:
-                        if st.button(f"Remove {i}", key=f"remove_{i}"):
-                            ignore_patterns.pop(i)
-                            st.rerun()
+                    st.text(f"{i+1}. {pattern}")
 
-            # Add new pattern
-            new_pattern = st.text_input("Add new pattern", key="new_pattern")
-            if (
-                st.button("Add Pattern")
-                and new_pattern
-                and new_pattern not in ignore_patterns
-            ):
-                ignore_patterns.append(new_pattern)
-                st.rerun()
-
-            if st.form_submit_button("Save Configuration"):
+            # Add new pattern in the form
+            new_pattern = st.text_input("New pattern to add", key="new_pattern")
+            
+            # Add button to handle adding a pattern when submit is clicked
+            if "temp_patterns" not in st.session_state:
+                st.session_state.temp_patterns = ignore_patterns.copy()
+                
+            # Add a placeholder for managing patterns
+            patterns_to_remove = []
+            if ignore_patterns:
+                st.write("Select patterns to remove:")
+                for i, pattern in enumerate(ignore_patterns):
+                    if st.checkbox(pattern, key=f"remove_pattern_{i}"):
+                        patterns_to_remove.append(i)
+                    
+            # Submit button for the form
+            submit = st.form_submit_button("Save Configuration")
+            
+            if submit:
+                # Process pattern changes first
+                # Add new pattern if provided
+                updated_patterns = ignore_patterns.copy()
+                if new_pattern and new_pattern not in updated_patterns:
+                    updated_patterns.append(new_pattern)
+                
+                # Remove selected patterns in reverse order to maintain indices
+                for i in sorted(patterns_to_remove, reverse=True):
+                    updated_patterns.pop(i)
+                
+                # Create the new configuration
                 new_config = {  # type: ignore
                     "project_name": sanitize_filename(project_name),
                     "directory": root_directory,
@@ -206,7 +219,7 @@ def main():
                     "include_in_prompt": include_in_prompt,
                     "use_local_gitignore": use_local_gitignore,
                     "use_project_gitignore": use_project_gitignore,
-                    "ignore_patterns": ignore_patterns,
+                    "ignore_patterns": updated_patterns,
                     "last_used": datetime.now().strftime("%Y-%m-%d"),
                 }
                 assert is_valid_project_config(new_config)
@@ -282,17 +295,18 @@ def main():
         st.subheader("Actions")
         if st.button("Generate Snapshot", key="generate_button"):
             try:
-                if "selected_config" not in locals():
+                if "selected_config" not in st.session_state:
                     st.error("Please select or create a configuration first.")
                     return
 
-                output_filename = selected_config["output_pattern"].format(
+                current_config = st.session_state.selected_config
+                output_filename = current_config["output_pattern"].format(
                     time=datetime.now().strftime("%Y-%m-%d-%H%M%S")
                 )
                 output_path = (
                     Path(__file__).resolve().parent
                     / "output"
-                    / selected_config["project_name"]
+                    / current_config["project_name"]
                     / output_filename
                 )
 
@@ -300,11 +314,14 @@ def main():
                     result = save_project_contents(
                         Path(root_directory),
                         output_path,
-                        selected_config["project_name"],
-                        selected_config["include_in_prompt"],
-                        selected_config.get("ignore_patterns", []),
-                        selected_config.get("use_local_gitignore", True),
-                        selected_config.get("use_project_gitignore", True),
+                        current_config["project_name"],
+                        current_config["include_in_prompt"],
+                        current_config.get("ignore_patterns", []),
+                        current_config.get("use_local_gitignore", True),
+                        current_config.get("use_project_gitignore", True),
+                        current_config.get("use_parallel_processing", True),
+                        None,  # Use default max_workers
+                        current_config.get("check_binary_content", True),
                     )
 
                 st.success(

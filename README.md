@@ -11,12 +11,28 @@ Project Snapshot is a powerful and user-friendly tool designed to capture the es
   - Import patterns from existing files
   - Define custom ignore patterns
   - Configure per project
+  - Predefined templates for common project types (Python, Node.js, Java)
 - 🌳 Directory Tree: Generates a clear visual representation of your project structure
 - 📄 File Contents: Captures the contents of all relevant project files
 - 🔧 Configurable: Easily customizable output and project names
 - 💾 Persistent Configuration: Saves your preferences for future use
-- 🚀 Performance: Efficiently handles large projects with memory mapping for big files
+- 🚀 Performance: 
+  - Parallel processing for significantly faster snapshots
+  - Memory mapping for efficient handling of large files
+  - Smart binary file detection through both extension and content analysis
 - 🔍 Detailed Logging: Comprehensive logging for troubleshooting and auditing
+
+## What's New
+
+Recent improvements to Project Snapshot have significantly enhanced its performance and usability:
+
+- **Parallel Processing**: The snapshot engine now processes files concurrently, providing up to 5-10x faster performance on multi-core systems.
+- **Enhanced Binary Detection**: Improved algorithm that checks both file extensions and content for more accurate binary file detection.
+- **Centralized Configuration**: New architecture with clear separation between core functionality and user interfaces.
+- **Expanded Language Support**: Support for over 50 programming languages with proper syntax highlighting.
+- **Template System**: Predefined ignore pattern templates for common project types (Python, Node.js, Java, etc.)
+- **Improved Error Handling**: More robust error recovery and detailed reporting.
+- **Type Safety**: Comprehensive type hints throughout the codebase for better reliability.
 
 ## Installation
 

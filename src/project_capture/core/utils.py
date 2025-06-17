@@ -105,7 +105,7 @@ def get_output_path(
     Args:
         project_name (str): The name of the project
         output_pattern (str): The output filename pattern
-        base_dir (Optional[Path]): Base directory for output. Defaults to script location.
+        base_dir (Optional[Path]): Base directory for output. Defaults to current working directory.
         
     Returns:
         Path: The full output file path
@@ -114,7 +114,7 @@ def get_output_path(
     output_filename = output_pattern.format(time=timestamp)
     
     if base_dir is None:
-        base_dir = Path(__file__).resolve().parent.parent
+        base_dir = Path.cwd()
         
     output_path = base_dir / "output" / project_name / output_filename
     return output_path

@@ -36,11 +36,29 @@ Recent improvements to Project Snapshot have significantly enhanced its performa
 
 ## Installation
 
+### Quick Setup (Recommended)
+
+Use the provided setup script for a complete development environment:
+
+```sh
+git clone <repository_url>
+cd project-capture
+./setup.sh
+```
+
+This will:
+- Create a virtual environment
+- Install all dependencies
+- Set up pre-commit hooks
+- Create necessary directories
+
+### Manual Installation
+
 1. Clone the repository:
 
    ```sh
    git clone <repository_url>
-   cd project-snapshot
+   cd project-capture
    ```
 
 2. Create and activate a virtual environment:
@@ -50,20 +68,32 @@ Recent improvements to Project Snapshot have significantly enhanced its performa
    source venv/bin/activate   # On Windows, use `venv\Scripts\activate`
    ```
 
-3. Install the required dependencies:
+3. Install the package in development mode:
 
    ```sh
-   pip install -r requirements.txt
+   pip install -e ".[dev]"
    ```
 
 ## Usage
+
+### CLI Interface
+
+Run the command-line interface:
+
+```sh
+./project_capture
+# or
+python -m project_capture.cli
+```
 
 ### Streamlit Web Interface
 
 Run the Streamlit app to use the web interface:
 
 ```sh
-streamlit run main.py
+streamlit run src/project_capture/web/app.py
+# or
+make run-web
 ```
 
 Follow the intuitive prompts to:
@@ -161,7 +191,16 @@ The tool uses a `config.json` file to store your preferences and project configu
 - Custom ignore patterns
 - Last used timestamp
 
-You don't need to edit this file manually - both the CLI and web UI provide easy ways to manage your configurations.
+### Configuration Files
+
+- `config.json.example` - Example configuration file
+- `examples/.gitignore.example` - Common gitignore patterns
+
+Copy the example configuration and customize as needed:
+
+```sh
+cp config.json.example config.json
+```
 
 ## Ignore Pattern Management
 
@@ -194,13 +233,51 @@ Detailed logs are saved in the `project_snapshot.log` file. Check this file for 
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## Testing
+## Development
 
-To run the unit tests, use the following command:
+### Running Tests
 
 ```sh
-python -m unittest test_snapshot.py
+# Run all tests
+make test
+
+# Run unit tests only
+make test-unit
+
+# Run integration tests only
+make test-integration
+
+# Run with coverage report
+pytest --cov=project_capture
 ```
+
+### Code Quality
+
+```sh
+# Run all checks
+make check-all
+
+# Run linting
+make lint
+
+# Format code
+make format
+
+# Type checking
+make type-check
+
+# Security scan
+make security
+```
+
+### Development Workflow
+
+1. Create a feature branch
+2. Make your changes
+3. Run `make check-all` to ensure quality
+4. Submit a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## License
 

@@ -5,14 +5,14 @@ from typing import cast
 
 import streamlit as st  # type: ignore
 
-from snapshot.capture import save_project_contents
-from snapshot.types import (
+from project_capture.core.capture import save_project_contents
+from project_capture.core.types import (
     AppConfig,
     ProjectConfig,
     is_valid_app_config,
     is_valid_project_config,
 )
-from snapshot.utils import configure_logging, copy_to_clipboard, sanitize_filename
+from project_capture.core.utils import configure_logging, copy_to_clipboard, sanitize_filename
 
 # Configure logging
 logger = configure_logging()

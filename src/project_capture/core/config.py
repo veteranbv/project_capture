@@ -4,9 +4,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
 
-from snapshot.exceptions import ProjectSnapshotError
-from snapshot.types import AppConfig, ProjectConfig, is_valid_app_config, is_valid_project_config
-from snapshot.utils import sanitize_filename
+from project_capture.core.exceptions import ProjectSnapshotError
+from project_capture.core.types import AppConfig, ProjectConfig, is_valid_app_config, is_valid_project_config
+from project_capture.core.utils import sanitize_filename
 
 # Default configuration file path
 CONFIG_FILE = "config.json"

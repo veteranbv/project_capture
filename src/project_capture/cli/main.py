@@ -11,8 +11,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.prompt import Confirm, Prompt  # type: ignore
 from rich.table import Table  # type: ignore
 
-from snapshot.capture import save_project_contents
-from snapshot.config import (
+from project_capture.core.capture import save_project_contents
+from project_capture.core.config import (
     CONFIG_FILE,
     MAX_CONFIGS_PER_PROJECT,
     add_configuration,
@@ -23,10 +23,10 @@ from snapshot.config import (
     save_config,
     update_configuration,
 )
-from snapshot.constants import IGNORE_PATTERN_TEMPLATES
-from snapshot.exceptions import ProjectSnapshotError
-from snapshot.types import AppConfig, ProjectConfig, ProjectContentsResult
-from snapshot.utils import (
+from project_capture.core.constants import IGNORE_PATTERN_TEMPLATES
+from project_capture.core.exceptions import ProjectSnapshotError
+from project_capture.core.types import AppConfig, ProjectConfig, ProjectContentsResult
+from project_capture.core.utils import (
     configure_logging,
     copy_to_clipboard,
     get_output_path,

@@ -5,8 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
-import main
-from snapshot.capture import (
+from project_capture.cli import main
+from project_capture.core.capture_legacy import (
     escape_markdown,
     get_language,
     is_binary_file,
@@ -14,8 +14,8 @@ from snapshot.capture import (
     read_file_content,
     save_project_contents,
 )
-from snapshot.exceptions import ProjectSnapshotError
-from snapshot.utils import copy_to_clipboard, sanitize_filename
+from project_capture.core.exceptions import ProjectSnapshotError
+from project_capture.core.utils import copy_to_clipboard, sanitize_filename
 
 
 class TestSnapshotFunctions(unittest.TestCase):

@@ -34,11 +34,9 @@ Desktop.ini
 # Python #
 __pycache__/
 *.py[cod]
+*$py.class
 *.so
-.venv
-venv/
-ENV/
-env/
+.Python
 build/
 develop-eggs/
 dist/
@@ -50,12 +48,49 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Type checking
 .mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Testing
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+.hypothesis/
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.py,cover
+.ruff_cache/
+
+# Documentation
+docs/_build/
+docs/_static/
+docs/_templates/
 
 #######################################
 # Operating Systems                   #
@@ -338,10 +373,57 @@ error_log
 # Specific to my project              #
 #######################################
 
-output/*
-.env
-
-.git/*
-.project_snapshot.log
-config.json
+# Output directories
 output/
+outputs/
+snapshots/
+
+# Configuration files with sensitive data
+config.json
+*.config.json
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+project_snapshot.log
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Project specific
+.claude/
+.cursorrules
+
+# AI-specific files
+CLAUDE.md
+*.claude.md
+.claude
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# Development artifacts
+profile.stats
+.benchmarks/
+
+# Local development
+local/
+.local/
+
+# Pre-commit
+.pre-commit-config.yaml.lock

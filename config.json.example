@@ -1,0 +1,23 @@
+{
+    "configurations": [
+        {
+            "project_name": "example-project",
+            "directory": "/path/to/your/project",
+            "output_pattern": "{project_name}_snapshot-{time}.md",
+            "include_in_prompt": false,
+            "use_local_gitignore": true,
+            "use_project_gitignore": true,
+            "ignore_patterns": [
+                "*.log",
+                "*.tmp",
+                "build/",
+                "dist/"
+            ],
+            "use_parallel_processing": true,
+            "check_binary_content": true,
+            "output_format": "markdown",
+            "last_used": "2025-01-01"
+        }
+    ],
+    "last_directory": "/path/to/your/project"
+}
